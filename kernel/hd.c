@@ -66,10 +66,18 @@ static void rw_abs_hd(int rw,unsigned int nr,unsigned int sec,unsigned int head,
 void hd_init(void);
 
 #define port_read(port,buf,nr) \
-__asm__("cld;rep;insw"::"d" (port),"D" (buf),"c" (nr):"cx","di")
+__asm__("push %%cx\n\t" \
+	"push %%di\n\t" \
+	"cld;rep;insw\n\t" \
+	"pop %%di\n\t" \
+	"pop %%cx"::"d" (port),"D" (buf),"c" (nr))
 
 #define port_write(port,buf,nr) \
-__asm__("cld;rep;outsw"::"d" (port),"S" (buf),"c" (nr):"cx","si")
+__asm__("push %%cx\n\t" \
+	"push %%si\n\t" \
+	"cld;rep;outsw\n\t" \
+	"pop %%si\n\t" \
+	"pop %%cx"::"d" (port),"S" (buf),"c" (nr))
 
 extern void hd_interrupt(void);
 

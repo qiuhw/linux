@@ -71,59 +71,79 @@ static void scrup(void)
 		pos += columns<<1;
 		scr_end += columns<<1;
 		if (scr_end>SCREEN_END) {
-			__asm__("cld\n\t"
+			__asm__("push %%cx\n\t"
+				"push %%di\n\t"
+				"push %%si\n\t"
+				"cld\n\t"
 				"rep\n\t"
 				"movsl\n\t"
-				"movl _columns,%1\n\t"
+				"movl columns,%1\n\t"
 				"rep\n\t"
-				"stosw"
+				"stosw\n\t"
+				"pop %%si\n\t"
+				"pop %%di\n\t"
+				"pop %%cx\n\t"
 				::"a" (0x0720),
 				"c" ((lines-1)*columns>>1),
 				"D" (SCREEN_START),
-				"S" (origin)
-				:"cx","di","si");
+				"S" (origin));
 			scr_end -= origin-SCREEN_START;
 			pos -= origin-SCREEN_START;
 			origin = SCREEN_START;
 		} else {
-			__asm__("cld\n\t"
+			__asm__("push %%cx\n\t"
+				"push %%di\n\t"
+				"cld\n\t"
 				"rep\n\t"
-				"stosl"
+				"stosl\n\t"
+				"pop %%di\n\t"
+				"pop %%cx"
 				::"a" (0x07200720),
 				"c" (columns>>1),
-				"D" (scr_end-(columns<<1))
-				:"cx","di");
+				"D" (scr_end-(columns<<1)));
 		}
 		set_origin();
 	} else {
-		__asm__("cld\n\t"
+		__asm__("push %%cx\n\t"
+			"push %%di\n\t"
+			"push %%si\n\t"
+			"cld\n\t"
 			"rep\n\t"
 			"movsl\n\t"
-			"movl _columns,%%ecx\n\t"
+			"movl columns,%%ecx\n\t"
 			"rep\n\t"
-			"stosw"
+			"stosw\n\t"
+			"pop %%si\n\t"
+			"pop %%di\n\t"
+			"pop %%cx"
 			::"a" (0x0720),
 			"c" ((bottom-top-1)*columns>>1),
 			"D" (origin+(columns<<1)*top),
-			"S" (origin+(columns<<1)*(top+1))
-			:"cx","di","si");
+			"S" (origin+(columns<<1)*(top+1)));
 	}
 }
 
 static void scrdown(void)
 {
-	__asm__("std\n\t"
+	__asm__("push %%ax\n\t"
+		"push %%cx\n\t"
+		"push %%di\n\t"
+		"push %%si\n\t"
+		"std\n\t"
 		"rep\n\t"
 		"movsl\n\t"
 		"addl $2,%%edi\n\t"	/* %edi has been decremented by 4 */
-		"movl _columns,%%ecx\n\t"
+		"movl columns,%%ecx\n\t"
 		"rep\n\t"
-		"stosw"
+		"stosw\n\t"
+		"pop %%si\n\t"
+		"pop %%di\n\t"
+		"pop %%cx\n\t"
+		"pop %%ax"
 		::"a" (0x0720),
 		"c" ((bottom-top-1)*columns>>1),
 		"D" (origin+(columns<<1)*bottom-4),
-		"S" (origin+(columns<<1)*(bottom-1)-4)
-		:"ax","cx","di","si");
+		"S" (origin+(columns<<1)*(bottom-1)-4));
 }
 
 static void lf(void)
@@ -182,12 +202,15 @@ static void csi_J(int par)
 		default:
 			return;
 	}
-	__asm__("cld\n\t"
+	__asm__("push %%cx\n\t"
+		"push %%di\n\t"
+		"cld\n\t"
 		"rep\n\t"
 		"stosw\n\t"
+		"pop %%di\n\t"
+		"pop %%cx"
 		::"c" (count),
-		"D" (start),"a" (0x0720)
-		:"cx","di");
+		"D" (start),"a" (0x0720));
 }
 
 static void csi_K(int par)
@@ -213,12 +236,15 @@ static void csi_K(int par)
 		default:
 			return;
 	}
-	__asm__("cld\n\t"
+	__asm__("push %%cx\n\t"
+		"push %%di\n\t"
+		"cld\n\t"
 		"rep\n\t"
 		"stosw\n\t"
+		"pop %%di\n\t"
+		"pop %%cx"
 		::"c" (count),
-		"D" (start),"a" (0x0720)
-		:"cx","di");
+		"D" (start),"a" (0x0720));
 }
 
 void csi_m(void)
@@ -385,10 +411,11 @@ void con_write(struct tty_struct * tty)
 						pos -= columns<<1;
 						lf();
 					}
-					__asm__("movb _attr,%%ah\n\t"
+					__asm__("push %%ax\n\t"
+						"movb attr,%%ah\n\t"
 						"movw %%ax,%1\n\t"
-						::"a" (c),"m" (*(short *)pos)
-						:"ax");
+						"pop %%ax"
+						::"a" (c),"m" (*(short *)pos));
 					pos += 2;
 					x++;
 				} else if (c==27)

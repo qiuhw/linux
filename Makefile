@@ -4,15 +4,15 @@
 # remove them from the CFLAGS defines.
 #
 
-AS86	=as -0 -a
+AS86	=as86 -0 -a
 CC86	=cc -0
-LD86	=ld -0
+LD86	=ld86 -0
 
-AS	=gas
-LD	=gld
-LDFLAGS	=-s -x -M
+AS	= as
+LD	= ld
+LDFLAGS	=-s -x -M -m elf_i386
 CC	=gcc
-CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer -fcombine-regs
+CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer -m32
 CPP	=gcc -E -nostdinc -Iinclude
 
 ARCHIVES=kernel/kernel.o mm/mm.o fs/fs.o
@@ -22,7 +22,7 @@ LIBS	=lib/lib.a
 	$(CC) $(CFLAGS) \
 	-nostdinc -Iinclude -S -o $*.s $<
 .s.o:
-	$(AS) -c -o $*.o $<
+	$(AS) -32 -c -o $*.o $<
 .c.o:
 	$(CC) $(CFLAGS) \
 	-nostdinc -Iinclude -c -o $*.o $<
@@ -36,7 +36,7 @@ Image: boot/boot tools/system tools/build
 tools/build: tools/build.c
 	$(CC) $(CFLAGS) \
 	-o tools/build tools/build.c
-	chmem +65000 tools/build
+	#chmem +65000 tools/build
 
 boot/head.o: boot/head.s
 
@@ -60,8 +60,8 @@ lib/lib.a:
 	(cd lib; make)
 
 boot/boot:	boot/boot.s tools/system
-	(echo -n "SYSSIZE = (";ls -l tools/system | grep system \
-		| cut -c25-31 | tr '\012' ' '; echo "+ 15 ) / 16") > tmp.s
+	(echo -n "SYSSIZE = "; \
+		ls -l tools/system | awk '{print ($$5 + 15) / 16}') > tmp.s
 	cat boot/boot.s >> tmp.s
 	$(AS86) -o boot/boot.o tmp.s
 	rm -f tmp.s

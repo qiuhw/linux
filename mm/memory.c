@@ -26,7 +26,13 @@ __asm__("movl %%eax,%%cr3"::"a" (0))
 #endif
 
 #define copy_page(from,to) \
-__asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024):"cx","di","si")
+__asm__("push %%cx\n\t" \
+	"push %%di\n\t" \
+	"push %%si\n\t" \
+	"cld ; rep ; movsl\n\t" \
+	"pop %%si\n\t" \
+	"pop %%di\n\t" \
+	"pop %%cx"::"S" (from),"D" (to),"c" (1024))
 
 static unsigned short mem_map [ PAGING_PAGES ] = {0,};
 
@@ -38,7 +44,9 @@ unsigned long get_free_page(void)
 {
 register unsigned long __res asm("ax");
 
-__asm__("std ; repne ; scasw\n\t"
+__asm__("push %%di\n\t"
+	"push %%cx\n\t"
+	"std ; repne ; scasw\n\t"
 	"jne 1f\n\t"
 	"movw $1,2(%%edi)\n\t"
 	"sall $12,%%ecx\n\t"
@@ -48,11 +56,13 @@ __asm__("std ; repne ; scasw\n\t"
 	"leal 4092(%%edx),%%edi\n\t"
 	"rep ; stosl\n\t"
 	"movl %%edx,%%eax\n"
-	"1:"
+	"1:\n\t"
+	"pop %%cx\n\t"
+	"pop %%di"
 	:"=a" (__res)
 	:"0" (0),"i" (LOW_MEM),"c" (PAGING_PAGES),
 	"D" (mem_map+PAGING_PAGES-1)
-	:"di","cx","dx");
+	:"dx");
 return __res;
 }
 
@@ -86,7 +96,7 @@ int free_page_tables(unsigned long from,unsigned long size)
 	if (!from)
 		panic("Trying to free up swapper memory space");
 	size = (size + 0x3fffff) >> 22;
-	dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
+	dir = (unsigned long *) ((from>>20) & 0xffc); /* pg_dir = 0 */
 	for ( ; size-->0 ; dir++) {
 		if (!(1 & *dir))
 			continue;
@@ -131,7 +141,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 
 	if ((from&0x3fffff) || (to&0x3fffff))
 		panic("copy_page_tables called with wrong alignment");
-	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
+	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* pg_dir = 0 */
 	to_dir = (unsigned long *) ((to>>20) & 0xffc);
 	size = ((unsigned) (size+0x3fffff)) >> 22;
 	for( ; size-->0 ; from_dir++,to_dir++) {
@@ -172,7 +182,7 @@ unsigned long put_page(unsigned long page,unsigned long address)
 {
 	unsigned long tmp, *page_table;
 
-/* NOTE !!! This uses the fact that _pg_dir=0 */
+/* NOTE !!! This uses the fact that pg_dir=0 */
 
 	if (page < LOW_MEM || page > HIGH_MEMORY)
 		printk("Trying to put page %p at %p\n",page,address);

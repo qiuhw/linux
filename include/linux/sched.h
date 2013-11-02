@@ -167,9 +167,9 @@ __asm__("str %%ax\n\t" \
  */
 #define switch_to(n) {\
 struct {long a,b;} __tmp; \
-__asm__("cmpl %%ecx,_current\n\t" \
+__asm__("cmpl %%ecx,current\n\t" \
 	"je 1f\n\t" \
-	"xchgl %%ecx,_current\n\t" \
+	"xchgl %%ecx,current\n\t" \
 	"movw %%dx,%1\n\t" \
 	"ljmp %0\n\t" \
 	"cmpl %%ecx,%2\n\t" \
@@ -183,27 +183,29 @@ __asm__("cmpl %%ecx,_current\n\t" \
 #define PAGE_ALIGN(n) (((n)+0xfff)&0xfffff000)
 
 #define _set_base(addr,base) \
-__asm__("movw %%dx,%0\n\t" \
+__asm__("push %%dx\n\t" \
+	"movw %%dx,%0\n\t" \
 	"rorl $16,%%edx\n\t" \
 	"movb %%dl,%1\n\t" \
-	"movb %%dh,%2" \
+	"movb %%dh,%2\n\t" \
+	"pop %%dx" \
 	::"m" (*((addr)+2)), \
 	  "m" (*((addr)+4)), \
 	  "m" (*((addr)+7)), \
-	  "d" (base) \
-	:"dx")
+	  "d" (base))
 
 #define _set_limit(addr,limit) \
-__asm__("movw %%dx,%0\n\t" \
+__asm__("push %%dx\n\t" \
+	"movw %%dx,%0\n\t" \
 	"rorl $16,%%edx\n\t" \
 	"movb %1,%%dh\n\t" \
 	"andb $0xf0,%%dh\n\t" \
 	"orb %%dh,%%dl\n\t" \
-	"movb %%dl,%1" \
+	"movb %%dl,%1\n\t" \
+	"pop %%dx" \
 	::"m" (*(addr)), \
 	  "m" (*((addr)+6)), \
-	  "d" (limit) \
-	:"dx")
+	  "d" (limit))
 
 #define set_base(ldt,base) _set_base( ((char *)&(ldt)) , base )
 #define set_limit(ldt,limit) _set_limit( ((char *)&(ldt)) , (limit-1)>>12 )

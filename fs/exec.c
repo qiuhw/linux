@@ -19,15 +19,20 @@ extern int sys_close(int fd);
 #define MAX_ARG_PAGES 32
 
 #define cp_block(from,to) \
-__asm__("pushl $0x10\n\t" \
+__asm__("push %%cx\n\t" \
+	"push %%di\n\t" \
+	"push %%si\n\t" \
+	"pushl $0x10\n\t" \
 	"pushl $0x17\n\t" \
 	"pop %%es\n\t" \
 	"cld\n\t" \
 	"rep\n\t" \
 	"movsl\n\t" \
-	"pop %%es" \
-	::"c" (BLOCK_SIZE/4),"S" (from),"D" (to) \
-	:"cx","di","si")
+	"pop %%es\n\t" \
+	"pop %%si\n\t" \
+	"pop %%di\n\t" \
+	"pop %%cx" \
+	::"c" (BLOCK_SIZE/4),"S" (from),"D" (to))
 
 /*
  * read_head() reads blocks 1-6 (not 0). Block 0 has already been

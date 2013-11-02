@@ -5,10 +5,14 @@
 #include <linux/kernel.h>
 
 #define clear_block(addr) \
-__asm__("cld\n\t" \
+__asm__("push %%cx\n\t" \
+	"push %%di\n\t" \
+	"cld\n\t" \
 	"rep\n\t" \
-	"stosl" \
-	::"a" (0),"c" (BLOCK_SIZE/4),"D" ((long) (addr)):"cx","di")
+	"stosl\n\t" \
+	"pop %%di\n\t" \
+	"pop %%cx" \
+	::"a" (0),"c" (BLOCK_SIZE/4),"D" ((long) (addr)))
 
 #define set_bit(nr,addr) ({\
 register int res __asm__("ax"); \
@@ -22,7 +26,8 @@ res;})
 
 #define find_first_zero(addr) ({ \
 int __res; \
-__asm__("cld\n" \
+__asm__("push %%si\n\t" \
+	"cld\n" \
 	"1:\tlodsl\n\t" \
 	"notl %%eax\n\t" \
 	"bsfl %%eax,%%edx\n\t" \
@@ -32,8 +37,9 @@ __asm__("cld\n" \
 	"2:\taddl $32,%%ecx\n\t" \
 	"cmpl $8192,%%ecx\n\t" \
 	"jl 1b\n" \
-	"3:" \
-	:"=c" (__res):"c" (0),"S" (addr):"ax","dx","si"); \
+	"3:\n\t" \
+	"pop %%si" \
+	:"=c" (__res):"c" (0),"S" (addr):"ax","dx"); \
 __res;})
 
 void free_block(int dev, int block)

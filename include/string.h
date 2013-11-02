@@ -26,18 +26,25 @@ extern char * strerror(int errno);
  
 extern inline char * strcpy(char * dest,const char *src)
 {
-__asm__("cld\n"
+__asm__("push %%si\n\t"
+	"push %%di\n\t"
+	"cld\n"
 	"1:\tlodsb\n\t"
 	"stosb\n\t"
 	"testb %%al,%%al\n\t"
-	"jne 1b"
-	::"S" (src),"D" (dest):"si","di","ax");
+	"jne 1b\n\t"
+	"pop %%di\n\t"
+	"pop %%si"
+	::"S" (src),"D" (dest):"ax");
 return dest;
 }
 
 extern inline char * strncpy(char * dest,const char *src,int count)
 {
-__asm__("cld\n"
+__asm__("push %%si\n\t"
+	"push %%di\n\t"
+	"push %%cx\n\t"
+	"cld\n"
 	"1:\tdecl %2\n\t"
 	"js 2f\n\t"
 	"lodsb\n\t"
@@ -46,28 +53,43 @@ __asm__("cld\n"
 	"jne 1b\n\t"
 	"rep\n\t"
 	"stosb\n"
-	"2:"
-	::"S" (src),"D" (dest),"c" (count):"si","di","ax","cx");
+	"2:\n\t"
+	"pop %%cx\n\t"
+	"pop %%di\n\t"
+	"pop %%si"
+	::"S" (src),"D" (dest),"c" (count):"ax");
 return dest;
 }
 
 extern inline char * strcat(char * dest,const char * src)
 {
-__asm__("cld\n\t"
+__asm__("push %%si\n\t"
+	"push %%di\n\t"
+	"push %%ax\n\t"
+	"push %%cx\n\t"
+	"cld\n\t"
 	"repne\n\t"
 	"scasb\n\t"
 	"decl %1\n"
 	"1:\tlodsb\n\t"
 	"stosb\n\t"
 	"testb %%al,%%al\n\t"
-	"jne 1b"
-	::"S" (src),"D" (dest),"a" (0),"c" (0xffffffff):"si","di","ax","cx");
+	"jne 1b\n\t"
+	"pop %%cx\n\t"
+	"pop %%ax\n\t"
+	"pop %%di\n\t"
+	"pop %%si"
+	::"S" (src),"D" (dest),"a" (0),"c" (0xffffffff));
 return dest;
 }
 
 extern inline char * strncat(char * dest,const char * src,int count)
 {
-__asm__("cld\n\t"
+__asm__("push %%si\n\t"
+	"push %%di\n\t"
+	"push %%ax\n\t"
+	"push %%cx\n\t"
+	"cld\n\t"
 	"repne\n\t"
 	"scasb\n\t"
 	"decl %1\n\t"
@@ -79,16 +101,21 @@ __asm__("cld\n\t"
 	"testb %%al,%%al\n\t"
 	"jne 1b\n"
 	"2:\txorl %2,%2\n\t"
-	"stosb"
-	::"S" (src),"D" (dest),"a" (0),"c" (0xffffffff),"g" (count)
-	:"si","di","ax","cx");
+	"stosb\n\t"
+	"pop %%cx\n\t"
+	"pop %%ax\n\t"
+	"pop %%di\n\t"
+	"pop %%si\n\t"
+	::"S" (src),"D" (dest),"a" (0),"c" (0xffffffff),"g" (count));
 return dest;
 }
 
 extern inline int strcmp(const char * cs,const char * ct)
 {
 register int __res __asm__("ax");
-__asm__("cld\n"
+__asm__("push %%si\n\t"
+	"push %%di\n\t"
+	"cld\n"
 	"1:\tlodsb\n\t"
 	"scasb\n\t"
 	"jne 2f\n\t"
@@ -99,15 +126,20 @@ __asm__("cld\n"
 	"2:\tmovl $1,%%eax\n\t"
 	"jl 3f\n\t"
 	"negl %%eax\n"
-	"3:"
-	:"=a" (__res):"D" (cs),"S" (ct):"si","di");
+	"3:\n\t"
+	"pop %%di\n\t"
+	"pop %%si"
+	:"=a" (__res):"D" (cs),"S" (ct));
 return __res;
 }
 
 extern inline int strncmp(const char * cs,const char * ct,int count)
 {
 register int __res __asm__("ax");
-__asm__("cld\n"
+__asm__("push %%si\n\t"
+	"push %%di\n\t"
+	"push %%cx\n\t"
+	"cld\n"
 	"1:\tdecl %3\n\t"
 	"js 2f\n\t"
 	"lodsb\n\t"
@@ -120,15 +152,19 @@ __asm__("cld\n"
 	"3:\tmovl $1,%%eax\n\t"
 	"jl 4f\n\t"
 	"negl %%eax\n"
-	"4:"
-	:"=a" (__res):"D" (cs),"S" (ct),"c" (count):"si","di","cx");
+	"4:\n\t"
+	"pop %%cx\n\t"
+	"pop %%di\n\t"
+	"pop %%si"
+	:"=a" (__res):"D" (cs),"S" (ct),"c" (count));
 return __res;
 }
 
 extern inline char * strchr(const char * s,char c)
 {
 register char * __res __asm__("ax");
-__asm__("cld\n\t"
+__asm__("push %%si\n\t"
+	"cld\n\t"
 	"movb %%al,%%ah\n"
 	"1:\tlodsb\n\t"
 	"cmpb %%ah,%%al\n\t"
@@ -137,15 +173,18 @@ __asm__("cld\n\t"
 	"jne 1b\n\t"
 	"movl $1,%1\n"
 	"2:\tmovl %1,%0\n\t"
-	"decl %0"
-	:"=a" (__res):"S" (s),"0" (c):"si");
+	"decl %0\n\t"
+	"pop %%si"
+	:"=a" (__res):"S" (s),"0" (c));
 return __res;
 }
 
 extern inline char * strrchr(const char * s,char c)
 {
 register char * __res __asm__("dx");
-__asm__("cld\n\t"
+__asm__("push %%ax\n\t"
+	"push %%si\n\t"
+	"cld\n\t"
 	"movb %%al,%%ah\n"
 	"1:\tlodsb\n\t"
 	"cmpb %%ah,%%al\n\t"
@@ -153,15 +192,19 @@ __asm__("cld\n\t"
 	"movl %%esi,%0\n\t"
 	"decl %0\n"
 	"2:\ttestb %%al,%%al\n\t"
-	"jne 1b"
-	:"=d" (__res):"0" (0),"S" (s),"a" (c):"ax","si");
+	"jne 1b\n\t"
+	"pop %%si\n\t"
+	"pop %%ax"
+	:"=d" (__res):"0" (0),"S" (s),"a" (c));
 return __res;
 }
 
 extern inline int strspn(const char * cs, const char * ct)
 {
 register char * __res __asm__("si");
-__asm__("cld\n\t"
+__asm__("push %%ax\n\t"
+	"push %%cx\n\t"
+	"cld\n\t"
 	"movl %4,%%edi\n\t"
 	"repne\n\t"
 	"scasb\n\t"
@@ -176,16 +219,20 @@ __asm__("cld\n\t"
 	"repne\n\t"
 	"scasb\n\t"
 	"je 1b\n"
-	"2:\tdecl %0"
+	"2:\tdecl %0\n\t"
+	"pop %%cx\n\t"
+	"pop %%ax"
 	:"=S" (__res):"a" (0),"c" (0xffffffff),"0" (cs),"g" (ct)
-	:"ax","cx","dx","di");
+	:"dx","di");
 return __res-cs;
 }
 
 extern inline int strcspn(const char * cs, const char * ct)
 {
 register char * __res __asm__("si");
-__asm__("cld\n\t"
+__asm__("push %%ax\n\t"
+	"push %%cx\n\t"
+	"cld\n\t"
 	"movl %4,%%edi\n\t"
 	"repne\n\t"
 	"scasb\n\t"
@@ -200,16 +247,20 @@ __asm__("cld\n\t"
 	"repne\n\t"
 	"scasb\n\t"
 	"jne 1b\n"
-	"2:\tdecl %0"
+	"2:\tdecl %0\n\t"
+    "pop %%cx\n\t"
+    "pop %%ax"
 	:"=S" (__res):"a" (0),"c" (0xffffffff),"0" (cs),"g" (ct)
-	:"ax","cx","dx","di");
+	:"dx","di");
 return __res-cs;
 }
 
 extern inline char * strpbrk(const char * cs,const char * ct)
 {
 register char * __res __asm__("si");
-__asm__("cld\n\t"
+__asm__("push %%ax\n\t"
+	"push %%cx\n\t"
+	"cld\n\t"
 	"movl %4,%%edi\n\t"
 	"repne\n\t"
 	"scasb\n\t"
@@ -227,16 +278,20 @@ __asm__("cld\n\t"
 	"decl %0\n\t"
 	"jmp 3f\n"
 	"2:\txorl %0,%0\n"
-	"3:"
+	"3:\n\t"
+	"pop %%cx\n\t"
+	"pop %%ax\n\t"
 	:"=S" (__res):"a" (0),"c" (0xffffffff),"0" (cs),"g" (ct)
-	:"ax","cx","dx","di");
+	:"dx","di");
 return __res;
 }
 
 extern inline char * strstr(const char * cs,const char * ct)
 {
 register char * __res __asm__("ax");
-__asm__("cld\n\t" \
+__asm__("push %%cx\n\t"
+	"push %%si\n\t"
+	"cld\n\t"
 	"movl %4,%%edi\n\t"
 	"repne\n\t"
 	"scasb\n\t"
@@ -254,21 +309,25 @@ __asm__("cld\n\t" \
 	"cmpb $0,-1(%%eax)\n\t"
 	"jne 1b\n\t"
 	"xorl %%eax,%%eax\n\t"
-	"2:"
+	"2:\n\t"
+	"pop %%si\n\t"
+	"pop %%cx"
 	:"=a" (__res):"0" (0),"c" (0xffffffff),"S" (cs),"g" (ct)
-	:"cx","dx","di","si");
+	:"dx","di");
 return __res;
 }
 
 extern inline int strlen(const char * s)
 {
 register int __res __asm__("cx");
-__asm__("cld\n\t"
+__asm__("push %%di\n\t"
+	"cld\n\t"
 	"repne\n\t"
 	"scasb\n\t"
 	"notl %0\n\t"
-	"decl %0"
-	:"=c" (__res):"D" (s),"a" (0),"0" (0xffffffff):"di");
+	"decl %0\n\t"
+	"pop %%di"
+	:"=c" (__res):"D" (s),"a" (0),"0" (0xffffffff));
 return __res;
 }
 
@@ -335,44 +394,64 @@ return __res;
 
 extern inline void * memcpy(void * dest,const void * src, int n)
 {
-__asm__("cld\n\t"
+__asm__("push %%cx\n\t"
+	"push %%si\n\t"
+	"push %%di\n\t"
+	"cld\n\t"
 	"rep\n\t"
-	"movsb"
-	::"c" (n),"S" (src),"D" (dest)
-	:"cx","si","di");
+	"movsb\n\t"
+	"pop %%di\n\t"
+	"pop %%si\n\t"
+	"pop %%cx"
+	::"c" (n),"S" (src),"D" (dest));
 return dest;
 }
 
 extern inline void * memmove(void * dest,const void * src, int n)
 {
 if (dest<src)
-__asm__("cld\n\t"
+__asm__("push %%cx\n\t"
+	"push %%si\n\t"
+	"push %%di\n\t"
+	"cld\n\t"
 	"rep\n\t"
-	"movsb"
-	::"c" (n),"S" (src),"D" (dest)
-	:"cx","si","di");
+	"movsb\n\t"
+	"pop %%di\n\t"
+	"pop %%si\n\t"
+	"pop %%cx"
+	::"c" (n),"S" (src),"D" (dest));
 else
-__asm__("std\n\t"
+__asm__("push %%cx\n\t"
+	"push %%si\n\t"
+	"push %%di\n\t"
+	"std\n\t"
 	"rep\n\t"
-	"movsb"
-	::"c" (n),"S" (src+n-1),"D" (dest+n-1)
-	:"cx","si","di");
+	"movsb\n\t"
+	"pop %%di\n\t"
+	"pop %%si\n\t"
+	"pop %%cx"
+	::"c" (n),"S" (src+n-1),"D" (dest+n-1));
 return dest;
 }
 
 extern inline int memcmp(const void * cs,const void * ct,int count)
 {
 register int __res __asm__("ax");
-__asm__("cld\n\t"
+__asm__("push %%si\n\t"
+	"push %%di\n\t"
+	"push %%cx\n\t"
+	"cld\n\t"
 	"repe\n\t"
 	"cmpsb\n\t"
 	"je 1f\n\t"
 	"movl $1,%%eax\n\t"
 	"jl 1f\n\t"
 	"negl %%eax\n"
-	"1:"
-	:"=a" (__res):"0" (0),"D" (cs),"S" (ct),"c" (count)
-	:"si","di","cx");
+	"1:\n\t"
+	"pop %%cx\n\t"
+	"pop %%di\n\t"
+	"pop %%si\n\t"
+	:"=a" (__res):"0" (0),"D" (cs),"S" (ct),"c" (count));
 return __res;
 }
 
@@ -381,24 +460,28 @@ extern inline void * memchr(const void * cs,char c,int count)
 register void * __res __asm__("di");
 if (!count)
 	return NULL;
-__asm__("cld\n\t"
+__asm__("push %%cx\n\t"
+	"cld\n\t"
 	"repne\n\t"
 	"scasb\n\t"
 	"je 1f\n\t"
 	"movl $1,%0\n"
-	"1:\tdecl %0"
-	:"=D" (__res):"a" (c),"D" (cs),"c" (count)
-	:"cx");
+	"1:\tdecl %0\n\t"
+	"pop %%cx"
+	:"=D" (__res):"a" (c),"D" (cs),"c" (count));
 return __res;
 }
 
 extern inline void * memset(void * s,char c,int count)
 {
-__asm__("cld\n\t"
+__asm__("push %%cx\n\t"
+	"push %%di\n\t"
+	"cld\n\t"
 	"rep\n\t"
-	"stosb"
-	::"a" (c),"D" (s),"c" (count)
-	:"cx","di");
+	"stosb\n\t"
+	"pop %%di\n\t"
+	"pop %%cx"
+	::"a" (c),"D" (s),"c" (count));
 return s;
 }
 
