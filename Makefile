@@ -1,51 +1,42 @@
-#
-# Makefile for linux.
-# If you don't have '-mstring-insns' in your gcc (and nobody but me has :-)
-# remove them from the CFLAGS defines.
-#
+AS86 = as86 -0 -a
+LD86 = ld86 -0
+AS = as
+LD = ld
+CC = gcc
 
-AS86	=as86 -0 -a
-CC86	=cc -0
-LD86	=ld86 -0
+CPP = $(CC) -E -nostdinc -Iinclude
+CFLAGS = -Wall -O -fstrength-reduce -fomit-frame-pointer -m32
+LDFLAGS = -s -x -M -m elf_i386
 
-AS	= as
-LD	= ld
-LDFLAGS	=-s -x -M -m elf_i386
-CC	=gcc
-CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer -m32
-CPP	=gcc -E -nostdinc -Iinclude
-
-ARCHIVES=kernel/kernel.o mm/mm.o fs/fs.o
-LIBS	=lib/lib.a
+ARCHIVES = kernel/kernel.o mm/mm.o fs/fs.o
+LIBS = lib/lib.a
 
 .c.s:
-	$(CC) $(CFLAGS) \
-	-nostdinc -Iinclude -S -o $*.s $<
+	$(CC) $(CFLAGS) -nostdinc -Iinclude -S -o $*.s $<
 .s.o:
 	$(AS) -32 -c -o $*.o $<
 .c.o:
-	$(CC) $(CFLAGS) \
-	-nostdinc -Iinclude -c -o $*.o $<
+	$(CC) $(CFLAGS) -nostdinc -Iinclude -c -o $*.o $<
 
-all:	Image
+all: Image
 
-Image: boot/boot tools/system tools/build
-	tools/build boot/boot tools/system > Image
-	sync
+Image: tools/build boot/boot tools/system
+	tools/build boot/boot tools/system > $@
 
 tools/build: tools/build.c
-	$(CC) $(CFLAGS) \
-	-o tools/build tools/build.c
-	#chmem +65000 tools/build
+	$(CC) -Wextra -Werror $(CFLAGS) -o $@ $<
+
+boot/boot: boot/boot.s tools/system
+	(echo -n "SYSSIZE = "; ls -l tools/system | awk '{print ($$5 + 15) / 16}') > tmp.s
+	cat $< >> tmp.s
+	$(AS86) -o $*.o tmp.s
+	rm tmp.s
+	$(LD86) -s -o $@ $*.o
+
+tools/system: boot/head.o init/main.o $(ARCHIVES) $(LIBS)
+	$(LD) $(LDFLAGS) $^ -o $@ > System.map
 
 boot/head.o: boot/head.s
-
-tools/system:	boot/head.o init/main.o \
-		$(ARCHIVES) $(LIBS)
-	$(LD) $(LDFLAGS) boot/head.o init/main.o \
-	$(ARCHIVES) \
-	$(LIBS) \
-	-o tools/system > System.map
 
 kernel/kernel.o:
 	(cd kernel; make)
@@ -56,32 +47,20 @@ mm/mm.o:
 fs/fs.o:
 	(cd fs; make)
 
-lib/lib.a:
+$(LIBS):
 	(cd lib; make)
 
-boot/boot:	boot/boot.s tools/system
-	(echo -n "SYSSIZE = "; \
-		ls -l tools/system | awk '{print ($$5 + 15) / 16}') > tmp.s
-	cat boot/boot.s >> tmp.s
-	$(AS86) -o boot/boot.o tmp.s
-	rm -f tmp.s
-	$(LD86) -s -o boot/boot boot/boot.o
-
 clean:
-	rm -f Image System.map tmp_make boot/boot core
+	rm -f Image System.map boot/boot core tmp_make
 	rm -f init/*.o boot/*.o tools/system tools/build
-	(cd mm;make clean)
-	(cd fs;make clean)
-	(cd kernel;make clean)
-	(cd lib;make clean)
-
-backup: clean
-	(cd .. ; tar cf - linux | compress16 - > backup.Z)
-	sync
+	(cd mm; make clean)
+	(cd fs; make clean)
+	(cd kernel; make clean)
+	(cd lib; make clean)
 
 dep:
 	sed '/\#\#\# Dependencies/q' < Makefile > tmp_make
-	(for i in init/*.c;do echo -n "init/";$(CPP) -M $$i;done) >> tmp_make
+	(for i in init/*.c; do echo -n "init/"; $(CPP) -M $$i; done) >> tmp_make
 	cp tmp_make Makefile
 	(cd fs; make dep)
 	(cd kernel; make dep)
