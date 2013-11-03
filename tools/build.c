@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     if (read(id, buf, GCC_HEADER) != GCC_HEADER)
         die("Unable to read header of 'system'");
 
-    for (i=0 ; (c = read(id, buf, sizeof(buf))) > 0; i += c)
+    while ((c = read(id, buf, sizeof(buf))) > 0)
         if (write(1, buf, c) != c)
             die("Write call failed");
 
