@@ -14,7 +14,7 @@ LIBS = lib/lib.a
 .c.s:
 	$(CC) $(CFLAGS) -nostdinc -Iinclude -S -o $*.s $<
 .s.o:
-	$(AS) -32 -c -o $*.o $<
+	$(AS) -32 -o $*.o $<
 .c.o:
 	$(CC) $(CFLAGS) -nostdinc -Iinclude -c -o $*.o $<
 
