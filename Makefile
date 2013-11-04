@@ -6,7 +6,7 @@ CC = gcc
 
 CPP = $(CC) -E -nostdinc -Iinclude
 CFLAGS = -Wall -Wextra -O -fstrength-reduce -fomit-frame-pointer -m32
-LDFLAGS = -s -x -M -m elf_i386 --oformat binary
+LDFLAGS = -s -x -M -Ttext 0 -e startup_32 -m elf_i386
 
 ARCHIVES = kernel/kernel.o mm/mm.o fs/fs.o
 LIBS = lib/lib.a
@@ -21,13 +21,15 @@ LIBS = lib/lib.a
 all: Image
 
 Image: tools/build boot/boot tools/system
-	tools/build boot/boot tools/system > $@
+	objcopy  -O binary -R .note -R .comment tools/system tools/system.bin
+	tools/build boot/boot tools/system.bin > $@
+	rm tools/system.bin
 
 tools/build: tools/build.c
 	$(CC) -Wextra -Werror $(CFLAGS) -o $@ $<
 
 boot/boot: boot/boot.s tools/system
-	(echo -n "SYSSIZE = "; ls -l tools/system | awk '{print ($$5 + 15) / 16}') > tmp.s
+	(echo -n "SYSSIZE = "; ls -l tools/system | awk '{print int(($$5+15)/16)}') > tmp.s
 	cat $< >> tmp.s
 	$(AS86) -o $*.o tmp.s
 	rm tmp.s
