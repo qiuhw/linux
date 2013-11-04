@@ -2,7 +2,7 @@ AR	= ar
 AS	= as
 CC	=gcc
 LD	= ld
-CFLAGS	=-Wall -fstrength-reduce -m32 -fomit-frame-pointer \
+CFLAGS	=-Wall -Wextra -O -fstrength-reduce -m32 -fomit-frame-pointer \
 	-nostdinc -I../include
 CPP	=gcc -E -nostdinc -I../include
 

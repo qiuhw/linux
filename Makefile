@@ -5,7 +5,7 @@ LD = ld
 CC = gcc
 
 CPP = $(CC) -E -nostdinc -Iinclude
-CFLAGS = -Wall -O -fstrength-reduce -fomit-frame-pointer -m32
+CFLAGS = -Wall -Wextra -O -fstrength-reduce -fomit-frame-pointer -m32
 LDFLAGS = -s -x -M -m elf_i386 --oformat binary
 
 ARCHIVES = kernel/kernel.o mm/mm.o fs/fs.o
