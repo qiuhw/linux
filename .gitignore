@@ -1,4 +1,5 @@
 Image
+hda.img
 System.map
 boot/boot
 tools/build
