@@ -34,7 +34,7 @@ static unsigned long pos;
 static unsigned long x,y;
 static unsigned long top=0,bottom=LINES;
 static unsigned long lines=LINES;
-volatile static unsigned long columns=COLUMNS;
+static volatile unsigned long columns=COLUMNS;
 static unsigned long state=0;
 static unsigned long npar,par[NPAR];
 static unsigned long ques=0;
@@ -184,8 +184,8 @@ static void del(void)
 
 static void csi_J(int par)
 {
-	long count __asm__("cx");
-	long start __asm__("di");
+	long count;
+	long start;
 
 	switch (par) {
 		case 0:	/* erase from cursor to end of display */
@@ -203,21 +203,16 @@ static void csi_J(int par)
 		default:
 			return;
 	}
-	__asm__("push %%cx\n\t"
-		"push %%di\n\t"
-		"cld\n\t"
+	__asm__("cld\n\t"
 		"rep\n\t"
-		"stosw\n\t"
-		"pop %%di\n\t"
-		"pop %%cx"
-		::"c" (count),
-		"D" (start),"a" (0x0720));
+		"stosw"
+		::"c" (count), "D" (start),"a" (0x0720));
 }
 
 static void csi_K(int par)
 {
-	long count __asm__("cx");
-	long start __asm__("di");
+	long count;
+	long start;
 
 	switch (par) {
 		case 0:	/* erase from cursor to end of line */
@@ -237,20 +232,15 @@ static void csi_K(int par)
 		default:
 			return;
 	}
-	__asm__("push %%cx\n\t"
-		"push %%di\n\t"
-		"cld\n\t"
+	__asm__("cld\n\t"
 		"rep\n\t"
-		"stosw\n\t"
-		"pop %%di\n\t"
-		"pop %%cx"
-		::"c" (count),
-		"D" (start),"a" (0x0720));
+		"stosw"
+		::"c" (count), "D" (start),"a" (0x0720));
 }
 
 void csi_m(void)
 {
-	int i;
+	unsigned long i;
 
 	for (i=0;i<=npar;i++)
 		switch (par[i]) {
@@ -287,7 +277,7 @@ static void respond(struct tty_struct * tty)
 
 static void insert_char(void)
 {
-	int i=x;
+	unsigned long i=x;
 	unsigned short tmp,old=0x0720;
 	unsigned short * p = (unsigned short *) pos;
 
@@ -314,7 +304,7 @@ static void insert_line(void)
 
 static void delete_char(void)
 {
-	int i;
+	unsigned long i;
 	unsigned short * p = (unsigned short *) pos;
 
 	if (x>=columns)
@@ -340,7 +330,7 @@ static void delete_line(void)
 	bottom=oldbottom;
 }
 
-static void csi_at(int nr)
+static void csi_at(unsigned long nr)
 {
 	if (nr>columns)
 		nr=columns;
@@ -350,7 +340,7 @@ static void csi_at(int nr)
 		insert_char();
 }
 
-static void csi_L(int nr)
+static void csi_L(unsigned long nr)
 {
 	if (nr>lines)
 		nr=lines;
@@ -360,7 +350,7 @@ static void csi_L(int nr)
 		insert_line();
 }
 
-static void csi_P(int nr)
+static void csi_P(unsigned long nr)
 {
 	if (nr>columns)
 		nr=columns;
@@ -370,7 +360,7 @@ static void csi_P(int nr)
 		delete_char();
 }
 
-static void csi_M(int nr)
+static void csi_M(unsigned long nr)
 {
 	if (nr>lines)
 		nr=lines;
@@ -466,7 +456,7 @@ void con_write(struct tty_struct * tty)
 					par[npar]=0;
 				npar=0;
 				state=3;
-				if (ques=(c=='?'))
+				if ((ques=(c=='?')))
 					break;
 			case 3:
 				if (c==';' && npar<NPAR-1) {
