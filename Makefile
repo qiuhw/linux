@@ -24,13 +24,13 @@ all: Image hda.img
 
 hda.img:
 	dd if=/dev/zero of=$@ bs=1M seek=40 count=0
-	echo Create a primary partition begin at 20 x 512 = 10240
 	echo ";" | sfdisk -H 4 -S 20 -C 1024 -D $@
 	sudo losetup -o 10240 $(LOOP_DEV) $@
 	sudo mkfs.minix -n 14 $(LOOP_DEV)
 	mkdir tmp
 	sudo mount $(LOOP_DEV) tmp
 	sudo mkdir tmp/{bin,usr}
+	@sleep 1
 	sudo umount tmp
 	sudo losetup -d $(LOOP_DEV)
 	rmdir tmp
