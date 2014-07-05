@@ -41,7 +41,7 @@ Image: tools/build boot/boot tools/system
 	rm tools/system.bin
 
 tools/build: tools/build.c
-	$(CC) -Wextra -Werror $(CFLAGS) -o $@ $<
+	$(CC) -Werror $(CFLAGS) -o $@ $<
 
 boot/boot: boot/boot.s tools/system
 	(echo -n "SYSSIZE = "; ls -l tools/system | awk '{print int(($$5+15)/16)}') > tmp.s
